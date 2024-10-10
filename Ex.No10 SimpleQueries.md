@@ -85,8 +85,7 @@ american(west).
 ```
 ### Output:
 
-![lab10c output](https://github.com/user-attachments/assets/d2dc6631-1230-4631-931b-6f04aa169086)
-
+![lab10c output](https://github.com/user-attachments/assets/6e0e2681-e073-4e96-8843-4930dc5a9333)
 
 ### Result:
 Thus the prolog programs were executed successfully and the answer of query was found.
