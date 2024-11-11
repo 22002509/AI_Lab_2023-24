@@ -4,6 +4,7 @@
 ### AIM: 
 To build and evaluate a machine learning model for predicting a target outcome based on given input features.
 ###  Algorithm:
+```
 1.Import the dataset, clean, and normalize it for analysis.
 2. Identify and select key features relevant to the target prediction.
 3. Choose an appropriate machine learning model (e.g., Logistic Regression, LightGBM, etc.).
@@ -12,7 +13,7 @@ To build and evaluate a machine learning model for predicting a target outcome b
 6.Interpret the model's predictions and visualize the outcomes with relevant graphs.
 Result (One-line):
         
-
+```
 ### Program:
 
 ```
