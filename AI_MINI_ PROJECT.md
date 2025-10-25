@@ -1,5 +1,5 @@
-# AI MINI PROJECT - Esophageal Cancer Prediction
-### DATE:    23-10-24                                                                        
+# AI MINI PROJECT - Weather Prediction
+### DATE:    25-10-25                                                                       
 ### REGISTER NUMBER : 212222040120
 ### AIM: 
 To build and evaluate a machine learning model for predicting a target outcome based on given input features.
@@ -16,250 +16,189 @@ Result (One-line):
 ```
 ### Program:
 
+### LINEAR REGRESSION
 ```
-import numpy as np # linear algebra
-import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
-
-# Input data files are available in the read-only "../input/" directory
-# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
-
-import os
-for dirname, _, filenames in os.walk('/kaggle/input'):
-    for filename in filenames:
-        print(os.path.join(dirname, filename))
-
-# You can write up to 20GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
-# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
+# Step 1: Import necessary libraries
+import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import warnings
-warnings.filterwarnings('ignore')
-df = pd.read_csv('Esophageal_Dataset.csv')
-df.head()
-df.tail()
-df.shape
-df.columns
-df = df.drop(['Unnamed: 0'], axis = 1)
-df.duplicated().sum()
-df.isnull().sum()
-null_percentage = (df.isnull().sum() / df.shape[0]) * 100
-high_null_features = null_percentage[null_percentage > 50]
-high_null_features
-features_to_drop = null_percentage[null_percentage > 50].index
-df = df.drop(columns=features_to_drop)
-df.info()
-df.describe()
-df.nunique()
-object_columns = df.select_dtypes(include=['object']).columns
-print("Object type columns:")
-print(object_columns)
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error, r2_score
 
-numerical_columns = df.select_dtypes(include=['int64', 'float64']).columns
-print("\nNumerical type columns:")
-print(numerical_columns)
-def classify_features(df):
-    categorical_features = []
-    non_categorical_features = []
-    discrete_features = []
-    continuous_features = []
+# Step 2: Read the uploaded CSV
+file_path = '/content/weatherHistory.csv' # Colab default upload path
+df = pd.read_csv(file_path)
 
-    for column in df.columns:
-        if df[column].dtype == 'object':
-            if df[column].nunique() < 10:
-                categorical_features.append(column)
-            else:
-                non_categorical_features.append(column)
-        elif df[column].dtype in ['int64', 'float64']:
-            if df[column].nunique() < 10:
-                discrete_features.append(column)
-            else:
-                continuous_features.append(column)
+# --- EDA and Cleaning (from original code) ---
+# Clean up column names for easier use
+df.columns = df.columns.str.strip().str.replace(' ', '_').str.replace('(', '').str.replace(')', '').str.replace('.', '').str.replace('-', '')
 
-    return categorical_features, non_categorical_features, discrete_features, continuous_features
-categorical, non_categorical, discrete, continuous = classify_features(df)
-print("Categorical Features:", categorical)
-print("Non-Categorical Features:", non_categorical)
-print("Discrete Features:", discrete)
-print("Continuous Features:", continuous)
-df[categorical] = df[categorical].fillna("Not Available")
-df[non_categorical] = df[non_categorical].fillna("Not Available")
+# Step 3: Handle missing values
+df = df.dropna()
 
-for feature in discrete:
-    mode_value = df[feature].mode()[0]
-    df[feature] = df[feature].fillna(mode_value)
+# --- ML Preparation Steps ---
 
-for feature in continuous:
-    mean_value = df[feature].mean()
-    df[feature] = df[feature].fillna(mean_value)
-df.isnull().sum()
-for i in continuous:
-    plt.figure(figsize=(15,6))
-    sns.histplot(df[i], bins = 20, kde = True, palette='hls')
-    plt.xticks(rotation = 90)
-    plt.show()
-for i in continuous:
-    plt.figure(figsize=(15, 6))
-    sns.boxplot(x=i, data=df, palette='hls')
-    plt.xticks(rotation=90)
-    plt.show()
-for i in discrete:
-    print(i)
-    print(df[i].unique())
-    print()
-for i in discrete:
-    print(i)
-    print(df[i].value_counts())
-    print()
-for i in discrete:
-    plt.figure(figsize=(15, 6))
-    ax = sns.countplot(x=i, data=df, palette='hls')
+# 1. Feature Selection
+# We'll use numerical columns as features to predict Temperature (C).
+features = ['Apparent_Temperature_C', 'Humidity', 'Wind_Speed_km/h', 'Wind_Bearing_degrees', 'Pressure_millibars']
+target = 'Temperature_C'
 
-    for p in ax.patches:
-        height = p.get_height()
-        ax.annotate(f'{height}', 
-                    xy=(p.get_x() + p.get_width() / 2., height),
-                    xytext=(0, 10),  
-                    textcoords='offset points',  
-                    ha='center', va='center')  
-    
-    plt.show()
-import plotly.express as px
+X = df[features] # Features
+y = df[target]   # Target
 
-for i in discrete:
-    counts = df[i].value_counts()
-    fig = px.pie(counts, values=counts.values, names=counts.index, title=f'Distribution of {i}')
-    fig.show()
-for i in categorical:
-    print(i)
-    print(df[i].unique())
-    print()
-for i in categorical:
-    print(i)
-    print(df[i].value_counts())
-    print()
-for i in categorical:
-    plt.figure(figsize=(15, 6))
-    ax = sns.countplot(x=i, data=df, palette='hls')
+print("\nFeatures (X) shape:", X.shape)
+print("Target (y) shape:", y.shape)
 
-    for p in ax.patches:
-        height = p.get_height()
-        ax.annotate(f'{height}', 
-                    xy=(p.get_x() + p.get_width() / 2., height),
-                    xytext=(0, 10),  
-                    textcoords='offset points',  
-                    ha='center', va='center')  
-    
-    plt.show()
-for i in categorical:
-    counts = df[i].value_counts()
-    fig = px.pie(counts, values=counts.values, names=counts.index, title=f'Distribution of {i}')
-    fig.show()
-from sklearn.feature_selection import chi2
-from sklearn.preprocessing import LabelEncoder
-label_enc = LabelEncoder()
-df_encoded = df[categorical].apply(lambda x: label_enc.fit_transform(x.astype(str)))
-chi_scores = chi2(df_encoded, df['person_neoplasm_cancer_status'])[0]
-chi_scores_series = pd.Series(chi_scores, index=categorical).sort_values(ascending=False)
-best_categorical_features = chi_scores_series[chi_scores_series > 10].index.tolist()
-best_categorical_features
-target_variable = 'person_neoplasm_cancer_status'
-for feature in continuous:
-    plt.figure(figsize=(8, 6))
-    sns.barplot(y=df[feature], x=df[target_variable], ci = None)
-    plt.title(f'Bar plot between {feature} and {target_variable}')
-    plt.show()
-for feature in best_categorical_features:
-    plt.figure(figsize=(10, 6))
-    sns.countplot(x=df[feature], hue=df[target_variable])
-    plt.title(f'Count plot of {feature} by {target_variable}')
-    plt.show()
-correlation_matrix = df[continuous].corr()
-plt.figure(figsize=(10, 8))
-sns.heatmap(correlation_matrix, annot=True, cmap="YlGnBu", fmt=".2f")
-plt.title("Heatmap of correlations among selected continuous features")
+# 2. Splitting the Data
+# Split the data into 80% training and 20% testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+print("\nTraining Set Size:", X_train.shape[0])
+print("Testing Set Size:", X_test.shape[0])
+
+# 3. Model Selection and Training
+# Initialize the Linear Regression model
+model = LinearRegression()
+
+# Train the model using the training data
+print("\nTraining the Linear Regression model...")
+model.fit(X_train, y_train)
+print("Model training complete.")
+
+# 4. Prediction and Evaluation
+# Make predictions on the test set
+y_pred = model.predict(X_test)
+
+# Evaluate the model's performance
+mae = mean_absolute_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+print("\n--- Model Evaluation ---")
+print(f"Mean Absolute Error (MAE): {mae:.2f}°C")
+print(f"R-squared (R2) Score: {r2:.4f}")
+
+# --- Visualization of Predictions ---
+plt.figure(figsize=(10, 6))
+plt.scatter(y_test, y_pred, alpha=0.5)
+plt.plot([y.min(), y.max()], [y.min(), y.max()], 'r--', lw=2) # Ideal line (y=x)
+plt.title('Actual vs. Predicted Temperature')
+plt.xlabel('Actual Temperature (C)')
+plt.ylabel('Predicted Temperature (C)')
+plt.grid(True)
 plt.show()
-pivot_table_mean = df.pivot_table(index='gender', columns='race_list', values='days_to_birth', aggfunc='mean')
-pivot_table_mean
-pivot_table_max_min = df.pivot_table(
-    index='gender', 
-    columns='person_neoplasm_cancer_status', 
-    values='primary_pathology_age_at_initial_pathologic_diagnosis', 
-    aggfunc=['max', 'min']
-)
-pivot_table_max_min
-pivot_table_multi_agg = df.pivot_table(
-    index='primary_pathology_histological_type', 
-    columns='vital_status', 
-    values='days_to_last_followup', 
-    aggfunc=['mean', 'median', 'std']
-)
-pivot_table_multi_agg
-pivot_table_percentage = df.pivot_table(
-    index='gender', 
-    columns='person_neoplasm_cancer_status', 
-    values='patient_id', 
-    aggfunc='count'
-)
-pivot_table_percentage = pivot_table_percentage.div(pivot_table_percentage.sum(axis=1), axis=0) * 100
-pivot_table_percentage
-pivot_table_totals = df.pivot_table(
-    index='tissue_prospective_collection_indicator', 
-    columns='country_of_birth', 
-    values='primary_pathology_age_at_initial_pathologic_diagnosis', 
-    aggfunc='mean', 
-    margins=True, 
-    margins_name='Total'
-)
-pivot_table_totals
-correlation_matrix = df[continuous].corr().abs()
-threshold = 0.65
+```
 
-features_to_drop = set()
+### RANDOM REGRESSION
+```
+# Step 1: Import necessary libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+# --- Changed ML Model Import ---
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, r2_score
 
-for i in range(len(correlation_matrix.columns)):
-    for j in range(i):
-        if correlation_matrix.iloc[i, j] > threshold:
-            colname = correlation_matrix.columns[i]
-            features_to_drop.add(colname)
+# Step 2: Read the uploaded CSV
+file_path = '/content/weatherHistory.csv' # Colab default upload path
+df = pd.read_csv(file_path)
 
-df_reduced = df.drop(columns=features_to_drop)
-df_reduced.shape
-# Before dropping, check if the columns exist in df_reduced
-non_categorical_to_drop = [col for col in non_categorical if col in df_reduced.columns]
+# --- EDA and Cleaning (from original code) ---
+# Clean up column names for easier use
+df.columns = df.columns.str.strip().str.replace(' ', '_').str.replace('(', '').str.replace(')', '').str.replace('.', '').str.replace('-', '')
 
-# Now drop only the existing columns
-df_reduced = df_reduced.drop(columns=non_categorical_to_drop)
-confusion_matrix_logreg = np.array([[60, 4, 3], [84, 292, 71], [46, 72, 165]])
-confusion_matrix_dtree = np.array([[66, 1, 0], [0, 446, 1], [0, 0, 283]])
+# Step 3: Handle missing values
+df = df.dropna()
 
-accuracy_logreg = 0.6487
-accuracy_dtree = 0.9975
+# --- ML Preparation Steps ---
 
-fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+# 1. Feature Selection
+# We'll use numerical columns as features to predict Temperature (C).
+features = ['Apparent_Temperature_C', 'Humidity', 'Wind_Speed_km/h', 'Wind_Bearing_degrees', 'Pressure_millibars']
+target = 'Temperature_C'
 
-sns.heatmap(confusion_matrix_logreg, annot=True, fmt="d", cmap="Blues", ax=axes[0])
-axes[0].set_title("Logistic Regression Confusion Matrix")
-axes[0].set_xlabel("Predicted Label")
-axes[0].set_ylabel("True Label")
+X = df[features] # Features
+y = df[target]   # Target
 
-sns.heatmap(confusion_matrix_dtree, annot=True, fmt="d", cmap="Greens", ax=axes[1])
-axes[1].set_title("Decision Tree Confusion Matrix")
-axes[1].set_xlabel("Predicted Label")
-axes[1].set_ylabel("True Label")
+print("\nFeatures (X) shape:", X.shape)
+print("Target (y) shape:", y.shape)
 
-model_names = ["Logistic Regression", "Decision Tree"]
-accuracy_scores = [accuracy_logreg, accuracy_dtree]
-axes[2].bar(model_names, accuracy_scores, color=['blue', 'green'])
-axes[2].set_ylim(0, 1.1)
-axes[2].set_title("Accuracy Comparison")
-axes[2].set_ylabel("Accuracy Score")
+# 2. Splitting the Data
+# Split the data into 80% training and 20% testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-plt.tight_layout()
+print("\nTraining Set Size:", X_train.shape[0])
+print("Testing Set Size:", X_test.shape[0])
+
+# 3. Model Selection and Training
+# --- Changed Model Initialization to RandomForestRegressor ---
+# n_estimators is the number of trees in the forest.
+# random_state ensures reproducibility.
+model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)
+
+# Train the model using the training data
+print("\nTraining the Random Forest Regressor model (this may take longer than Linear Regression)...")
+model.fit(X_train, y_train)
+print("Model training complete.")
+
+# 4. Prediction and Evaluation
+# Make predictions on the test set
+y_pred = model.predict(X_test)
+
+# Evaluate the model's performance
+mae = mean_absolute_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+print("\n--- Model Evaluation (Random Forest Regressor) ---")
+print(f"Mean Absolute Error (MAE): {mae:.2f}°C")
+print(f"R-squared (R2) Score: {r2:.4f}")
+
+# --- Visualization of Predictions ---
+plt.figure(figsize=(10, 6))
+plt.scatter(y_test, y_pred, alpha=0.5)
+plt.plot([y.min(), y.max()], [y.min(), y.max()], 'r--', lw=2) # Ideal line (y=x)
+plt.title('Actual vs. Predicted Temperature (Random Forest)')
+plt.xlabel('Actual Temperature (C)')
+plt.ylabel('Predicted Temperature (C)')
+plt.grid(True)
 plt.show()
 ```
 ### Output:
 
-![download](https://github.com/user-attachments/assets/4b510465-104f-409c-8789-590026be0e71)
+### Linear Regression
+
+Features (X) shape: (95936, 5)
+Target (y) shape: (95936,)
+
+Training Set Size: 76748
+Testing Set Size: 19188
+
+Training the Linear Regression model...
+Model training complete.
+
+--- Model Evaluation ---
+Mean Absolute Error (MAE): 0.74°C
+R-squared (R2) Score: 0.9901
+
+![WhatsApp Image 2025-10-25 at 14 29 02_308f6f7d](https://github.com/user-attachments/assets/471b44fe-3c79-44a4-bf41-a0de0a87dc11)
+
+### Random Regression
+
+Features (X) shape: (95936, 5)
+Target (y) shape: (95936,)
+
+Training Set Size: 76748
+Testing Set Size: 19188
+
+Training the Random Forest Regressor model (this may take longer than Linear Regression)...
+Model training complete.
+
+--- Model Evaluation (Random Forest Regressor) ---
+Mean Absolute Error (MAE): 0.01°C
+R-squared (R2) Score: 1.0000
+
+![WhatsApp Image 2025-10-25 at 14 29 35_a078c2f8](https://github.com/user-attachments/assets/2282946a-64c3-4fac-b6b1-d64d022a60bc)
 
 
 ### Result:
